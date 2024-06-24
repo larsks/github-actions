@@ -11,31 +11,68 @@ Lars Kellogg-Stedman <lars@redhat.com>
 
 ---
 
-# What are GitHub Actions?
+![Give your git repository SUPERPOWERS!](img/title1.png)
 
-Actions let you run code on GitHub in response to certain events
+---
+
+![Give your git repository SUPERPOWERS!](img/title2.png)
 
 ---
 
 # What are GitHub Actions?
 
-Actions let you run code on GitHub in response to certain events
+"GitHub Actions" let you create workflows that execute logic in response to certain events.
 
-Such as:
+![The beacons of Gondor have been lit!](img/beacons.png)
 
-- Pushes (whenever code is pushed to the repository)
-- Pull requests (when someone creates a pull request)
-- Schedule (run on a regular schedule, like cron)
+---
 
-But there are [many, many][] others.
+# What are GitHub Actions?
+
+"GitHub Actions" let you create workflows that execute logic in response to certain events.
+
+Events include:
+
+- When someone creates a pull request
+- When code is pushed to a repository
+- When someone comments on an issue
+- In response to a schedule
+
+But there are [many, many] others.
 
 [many, many]: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
 
 ---
 
+# Why use GitHub Actions?
+
+![Automate all the things!](img/automate.jpg)
+
+---
+
+# Why use GitHub Actions?
+
+Code testing!
+
+- Ensure *your* code works
+- Ensure *other people's* code works
+
+---
+
+# Why use GitHub Actions?
+
+Not just for testing:
+
+- Publish documentation
+- Create release binaries, container images, etc
+- Increase security
+- Enforce policy
+
+---
+
 # How do they work?
 
-Actions are combined into "workflows" which are described by [YAML][] files that live in `.github/workflows` in your repository. For example, looking at the [NERC config][] repository:
+A [workflow] is defined via [YAML] files that live in the `.github/workflows` directory of your repository.
 
 ```
 $ tree .github
@@ -45,15 +82,58 @@ $ tree .github
     └── validate-manifests.yaml
 ```
 
-(Lots of details in the complete [syntax reference][])
-
 [yaml]: https://en.wikipedia.org/wiki/YAML
-[nerc config]: https://github.com/operate-first/apps/tree/master/.github/workflows
-[syntax reference]: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+[workflow]: https://docs.github.com/en/actions/using-workflows/about-workflows
 
 ---
 
 # Basic structure
+
+```yaml
+name: An example workflow
+
+# Triggers that will cause the workflow to run
+on:
+  ...
+
+# Jobs that will run in response to the triggers
+jobs:
+  my-first-job:
+    runs-on: ubuntu-latest
+
+    # The job will execute these steps (in sequence)
+    steps:
+      - name: step1
+        ...
+      - name: step2
+        ...
+```
+
+---
+
+# Basic structure
+
+- `ubuntu-linux` is the standard Linux runtime.
+- There are [other Github hosted runners] available
+
+[other GitHub hosted runners]: https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#using-a-github-hosted-runner
+
+---
+
+# Basic structure
+
+- `jobs` run in parallel
+- `steps` are serialized
+- There are [resource limits] for the free tier, but they are not typically a problem
+  - Max 6 hours for a job
+  - Max 35 days for a workflow
+  - Max of 20 concurrent jobs
+
+[resource limits]: https://docs.github.com/en/actions/learn-github-actions/usage-limits-billing-and-administration
+
+---
+
+# Structure of a typical job
 
 - Check out your code
 - Configure language environment
@@ -62,141 +142,209 @@ $ tree .github
 
 ---
 
-# Example 1: the deploy-book workflow
+# Example 1: Syntax validation
 
-Our first example comes from the [`apps` repository][deploy-book].
+Our first example comes from the [`nerc-rates` repository][nerc-rates]. We're looking at the "[Validate rates file]" workflow.
 
-[deploy-book]: https://github.com/operate-first/apps/blob/master/.github/workflows/book.yml
+[nerc-rates]: https://github.com/CCI-MOC/nerc-rates
+[validate rates file]: https://github.com/CCI-MOC/nerc-rates/blob/main/.github/workflows/validate-rates.yaml
 
 ```
-name: deploy-book
-
-# Only run this when the master branch changes
+name: Validate rates file
 on:
   push:
     paths:
-      - 'docs/**'
-    branches:
-      - 'master'
-  workflow_dispatch:
+      - rates.yaml
+  pull_request:
+    paths:
+      - rates.yaml
 ```
 
-This runs on pushes to the `master` branch if they modify a file in the `docs` directory.
+This runs on pushes and pull requests if they modify the `rates.yaml` file.
 
 ---
 
-# Example 1: the deploy-book workflow
+# Example 1: Syntax validation
 
-The `workflow_dispatch` event means this also can be triggered manually.
-
-!["Run workflow" button](img/run-workflow.png)
-
----
-
-# Example 1: the deploy-book workflow
-
-A workflow consists of one or more jobs, and each job consists of a series of
-steps.
+A workflow consists of one or more jobs:
 
 ```
-# This job installs dependencies, build the book, and pushes it to `gh-pages`
 jobs:
-  deploy-book:
+  validate-rates-file:
+    name: Validate rates file
     runs-on: ubuntu-latest
 ```
 
-This job runs in the `ubuntu-latest` environment. Other choices include MacOS and Windows. You can also [bring your own container][container].
-
-[container]: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
+This job runs in the `ubuntu-latest` environment.
 
 ---
 
-# Example 1: the deploy-book workflow
+# Example 1: Syntax validation
 
-```
-    concurrency:
-      group: deploy_environment
-      cancel-in-progress: true
-```
-
-The `concurrency` setting prevents multiple instances of this job from running at the same time, and the `cancel-in-progress` setting means that when a new workflow run is triggered it will cancel any existing workflow runs.
-
----
-
-# Example 1: the deploy-book workflow
+A job consists of a series of steps. First, we check out the repository:
 
 ```
     steps:
-      - uses: actions/checkout@v2
+      - name: Check out code
+        uses: actions/checkout@v4
 ```
-
-Workflow steps can used predefined "actions". These are reusable chunks of code provided by third parties; the `actions/` namespace comes from GitHub, but anyone (even you!) can provide actions.
-
-The `actions/checkout@v2` action checks out the current repository into a local directory.
 
 ---
 
-# Example 1: the deploy-book workflow
+# Example 1: Syntax validation
+
+Next we set up the language environment and install dependencies:
 
 ```
-      # Install dependencies
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
+      - name: Set up python
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.7
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
-          pip install -r docs/requirements.txt
+          pip install -e .
 ```
-
-This is a Python-based workflow, so we need to install Python and then install any dependencies. Instead of running predefined actions, a step can specify a `run` script, which is just a Bash script (unless you explicitly set a different `shell` on the `step`).
 
 ---
 
-# Example 1: the deploy-book workflow
+# Example 1: Syntax validation
 
-For the final steps, we build the output using `jupter-book` and then use a third-party action ([peaceiris/actions-gh-pages][]) to publish the book to the github pages branch.
-
-[peaceiris/actions-gh-pages]: https://github.com/peaceiris/actions-gh-pages
+Finally, we execute the check itself:
 
 ```
-      # Build the book
-      - name: Build the book
+      - name: Validate rates file
         run: |
-          jupyter-book build docs/
+          validate-rates-file -g rates.yaml
+```
 
-      # Push the book's HTML to github-pages
-      - name: GitHub Pages action
-        uses: peaceiris/actions-gh-pages@v3.5.9
+We can view [success] or [failure] in the browser.
+
+[success]: https://github.com/CCI-MOC/nerc-rates/actions/runs/9600004249
+[failure]: https://github.com/CCI-MOC/nerc-rates/actions/runs/9406288272
+
+---
+
+# Example 2: Build a container image
+
+The MOC [ansible-switches-auto-deploy] repository uses a GitHub Actions workflow to build a container image whenever commits are pushed to the main branch.
+
+```
+name: Create and publish a container image
+
+on:
+  push:
+    branches:    
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+```
+
+`github.repository` is referring to a value in the GitHub [context].
+
+[ansible-switches-auto-deploy]: https://github.com/CCI-MOC/ansible-switches-auto-deploy
+[context]: https://docs.github.com/en/actions/learn-github-actions/contexts
+
+---
+
+# Example 2: Build a container image
+
+The start of the job should look familiar:
+
+```
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+```
+
+---
+
+# Example 2: Build a container image
+
+Log in to the container registry:
+
+```
+      - name: Log in to Container registry
+        uses: docker/login-action@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/_build/html
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN}}
+      
+```
+
+---
+
+# Example 2: Build a container image
+
+Gather metadata about the image:
+
+```
+      - name: Extract metadata (tags, labels) for image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+      
+```
+
+---
+
+# Example 2: Build a container image
+
+Build and push the image:
+
+```
+      - name: Build and push container image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Containerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 ```
 
 ---
 
 # Interlude 1: Secrets
 
-In the final step of the `deploy-book` workflow, there were a couple of parameters being passed to the `actions-gh-pages` action:
+In the previous workflow, we needed credentials to authenticate to the container registry:
 
 ```
-      - name: GitHub Pages action
-        uses: peaceiris/actions-gh-pages@v3.5.9
+      - name: Log in to Container registry
+        uses: docker/login-action@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/_build/html
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN}}
+      
 ```
 
-The value of `github_token` is an example of using a GitHub secret.
+In the above step, `${{ secrets.GITHUB_TOKEN }}` is an example of using a [GitHub secret].
+
+[github secret]: https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions
 
 ---
 
 # Interlude 1: Secrets
 
 - The `GITHUB_TOKEN` secret is provided automatically; it grants access to the current repository. 
-- You can define your own secrets at the [repository][] level, the [environment][] level, and the [organization][] level.
+- You can define your own secrets at the [repository] level, the [environment] level, and the [organization] level.
 - Useful for providing credentials to access other services (container image registries, web services, etc)
+- Secrets are "write only" in the web  ui (you can replace them, but you cannot view them)
 
 [repository]: https://docs.github.com/en/codespaces/managing-codespaces-for-your-organization/managing-encrypted-secrets-for-your-repository-and-organization-for-codespaces#adding-secrets-for-a-repository
 [environment]: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment
@@ -206,9 +354,9 @@ The value of `github_token` is an example of using a GitHub secret.
 
 # Example 2: Running pre-commit checks
 
-A common use case for GitHub workflows is to run some basic checks on pull requests. The following workflow makes use of the [pre-commit][], which applies checks define in a `.pre-commit-config.yaml` file.
+A common use case for GitHub workflows is to run some basic checks on pull requests (this is called "linting"). The following workflow makes use of the [pre-commit] tool, which applies checks defined in a `.pre-commit-config.yaml` file.
 
-This example from the [OpenShift on NERC][] project.
+This example from the [OpenShift on NERC] project.
 
 [pre-commit]: https://pre-commit.com/
 [openshift on nerc]: https://github.com/OCP-on-NERC/workflows/blob/main/.github/workflows/precommit.yaml
@@ -217,11 +365,12 @@ This example from the [OpenShift on NERC][] project.
 name: Run pre-commit checks
 
 on:
+  push:
   pull_request:
   workflow_call:
 ```
 
-This workflow runs for pull requests (but can also be triggered manually).
+This workflow runs for pushes and pull requests (but can also be triggered manually or called from another workflow).
 
 ---
 
@@ -233,12 +382,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '^3.9'
+          python-version: "3.12"
 ```
 
 We've seen all this before.
@@ -251,7 +400,7 @@ Installing dependencies can dramatically increase the runtime of your workflows.
 
 ```
       - name: Configure caching
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit
           key: precommit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -263,6 +412,8 @@ Here, we save the contents of the `~/.cache/pre-commit` directory. As long as `.
 
 # Example 2: Running pre-commit checks
 
+Running `pre-commit` will install files into `~/.cache/pre-commit`. When the workflow is complete, a post-run task will take care of archiving that directory with cache key we defined earlier.
+
 ```
       - name: Install pre-commit
         run: |
@@ -273,15 +424,15 @@ Here, we save the contents of the `~/.cache/pre-commit` directory. As long as `.
           pre-commit run --all-files
 ```
 
-Running `pre-commit` will install files into `~/.cache/pre-commit`. When the workflow is complete, a post-run task will take care of archiving that directory with cache key we defined earlier.
-
 ---
 
 # Interlude 2: Pre-commit
 
 - The [`pre-commit`][pre-commit] tool comes with a number of built-in checks, and it can also source checks from external repositories.
 - Checks to run are defined in a `.pre-commit-config.yaml` file, which is included in your repository.
-- Developers can configure `pre-commit` as a `git` `pre-commit` hook by simply running `pre-commit install`.
+- Developers can configure `pre-commit` as a `git` [`pre-commit` hook][hook] by simply running `pre-commit install`.
+
+[hook]: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
 
 ---
 
@@ -290,9 +441,8 @@ Running `pre-commit` will install files into `~/.cache/pre-commit`. When the wor
 Some checks we commonly run in NERC repositories:
 
 ```
-repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: check-merge-conflict
@@ -322,13 +472,37 @@ We often work with YAML files, so we use the `yamllint` tool to detect a number 
         entry: yamllint --strict
 ```
 
-The behavior of `yamllint` is controlled by a configuration file (typically `.yamllint.yaml`, but in this case `yamllint-config.yaml`.
+The behavior of `yamllint` is controlled by a configuration file (typically `.yamllint.yaml`).
+
+---
+
+# Interlude 2: Pre-commit
+
+Always run checks locally when possible!
+
+- Avoid embarrassing typos
+- Respect the time of your reviewers
+- Get faster, more relevant reviews
+
+---
+
+# What else can we do with workflows?
+
+- [Manage DNS entries in route53](https://github.com/CCI-MOC/moc-dns/blob/main/.github/workflows/update-dns.yaml)
+- [Automate issue labeling](https://github.com/cli/cli/blob/trunk/.github/workflows/issueauto.yml)
+- [Publish a website](https://github.com/openshift/node-feature-discovery/blob/master/.github/workflows/gh-pages.yml)
+- [Podman uses actions for lots of things](https://github.com/containers/podman/tree/main/.github/workflows)
+
+---
+
+
+background-image: url(img/the-end.jpg)
 
 ---
 
 # Running jobs in a container
 
-Instead of running commands in GitHub's default execution environment, you can run [your jobs][] or [individual steps][] in a custom container. For example:
+Instead of running commands in GitHub's default execution environment, you can run [your jobs] or [individual steps] in a custom container. For example:
 
 ```
 jobs:
@@ -358,11 +532,13 @@ jobs:
 
 # Workflows can be shared!
 
-A [recent change][] introduced reusable workflows, so you can build a library of workflows instead of having to duplicate code in every project.
+It is possible to create [reusable workflows] that can be included in other
+workflows, so you can build a library of workflows instead of having to
+duplicate code in every project.
 
-[recent change]: https://github.blog/2021-11-29-github-actions-reusable-workflows-is-generally-available/
+[reusable workflows]: https://github.blog/2021-11-29-github-actions-reusable-workflows-is-generally-available/
 
-[For example][]:
+[For example]:
 
 [for example]: https://github.com/OCP-on-NERC/workflows/blob/main/.github/workflows/precommit.yaml
 
@@ -370,6 +546,7 @@ A [recent change][] introduced reusable workflows, so you can build a library of
 name: Run pre-commit checks
 
 on:
+  push:
   pull_request:
   workflow_call:  # <-- the magic is here!
 ```
@@ -378,7 +555,7 @@ on:
 
 # Workflows can be shared!
 
-Now we can [include this workflow][] in another repository:
+Now we can [include this workflow] in another repository:
 
 ```
 name: Run pre-commit checks
@@ -404,16 +581,6 @@ jobs:
 
 ---
 
-# What else can we do with workflows?
-
-- [Automate software releases](https://github.com/larsks/halberd/blob/main/.github/workflows/release.yml)
-- [Automate issue labeling](https://github.com/cli/cli/blob/trunk/.github/workflows/issueauto.yml)
-- [Build Docker images](https://github.com/acmesh-official/acme.sh/blob/master/.github/workflows/dockerhub.yml)
-- [Publish a website](https://github.com/openshift/node-feature-discovery/blob/master/.github/workflows/gh-pages.yml)
-- [Publish DNS changes](https://github.com/larsks/oddbit-dns/blob/main/.github/workflows/update-dns.yaml)
-
----
-
 # Questions
 
 **What are best practices for setting up environment vs. repository secrets
@@ -425,7 +592,7 @@ jobs:
         code to your test environment.
       - A separate workflow for pushes to `main` that deploys to production environment.
       - Environments let you have different settings for the two environments while otherwise using the same workflows.
-  - See "[Use environments for deployments][]" for more information.
+  - See "[Use environments for deployments]" for more information.
 
 [use environments for deployments]: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment
 
